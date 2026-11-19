@@ -1,15 +1,16 @@
-// Vice Cover Studio v3 — cover drawing engine.
+// Vice Cover Studio v4 — cover drawing engine.
 // Hero-led poster: one BIG hero panel + supporting panels, every panel a
 // DIFFERENT visual, faces kept whole by a face-aware crop, and one strong
-// "Poster Ink" grade (sunset duotone wash + halftone print dots + cream
-// gutters) unifying photos and procedural art. The caption lives in its
-// OWN dedicated title band at the bottom — text never sits on a face.
+// "Poster Ink" grade (sunset duotone wash + BIG halftone print dots) unifying
+// photos and procedural art into one printed poster. The caption is the
+// POSTER'S TITLE: a giant gradient title with a thick black outline that
+// OVERLAPS the bottom of the photo grid (top-3 pattern — no separate band),
+// a neon script tagline under it, a starburst badge top-left and a stamp
+// top-right. Thin BLACK gutters, panels tight together.
 // Layouts: classic (hero mosaic, 6 panels), wide (hero + strip, 4 panels),
 // solo (one photo, 1 panel). Export sizes: 1080x1080, 1080x1350, 1920x1080.
-// v3: detailed 3D sportscar (layered shading, glass, lit lights, spoked
-// rims, road reflection), brighter neon street (readable word signs, lamps,
-// wet reflections, pedestrians), filled title band (credits + ornaments),
-// finer halftone grain everywhere for a sharper HD print.
+// v4: title 2x bigger and overlapping the art, band deleted, grade pushed
+// harder (bigger halftone, stronger duotone), black thin gutters, starburst.
 
 export const SIZES = {
   '1080x1080': [1080, 1080],
@@ -35,15 +36,18 @@ export const PHOTO_FOCUS = { photo0: { fx: 0.47, fy: 0.22 }, photo1: { fx: 0.52,
 
 export function defaultPanels() {
   // Reading order, classic 6-panel hero mosaic:
-  // HERO boulevard (2x2) | skyline | pier fisherman / sportscar | flamingo
-  // lagoon | neon street. Each photo appears ONCE; every panel differs.
+  // HERO boulevard (2x2) | flamingo lagoon | pier fisherman / sportscar |
+  // skyline | neon street. Each photo appears ONCE; every panel differs.
+  // v4: the flamingo lagoon sits TOP-RIGHT, not bottom — the giant title
+  // overlaps the whole bottom row, so a bottom flamingo's birds would be
+  // hidden behind the letters; up top both birds + reflection stay visible.
   // Indices 6-8 are spare art for the wide strip / shuffle pool.
   return [
     { src: 'photo1', zoom: 100, ox: 0, oy: 0, fx: 0.52, fy: 0.20 },
-    { src: 'skyline', zoom: 100, ox: 0, oy: 0 },
+    { src: 'flamingo', zoom: 100, ox: 0, oy: 0 },
     { src: 'photo0', zoom: 100, ox: 0, oy: 0, fx: 0.47, fy: 0.22 },
     { src: 'sportscar', zoom: 100, ox: 0, oy: 0 },
-    { src: 'flamingo', zoom: 100, ox: 0, oy: 0 },
+    { src: 'skyline', zoom: 100, ox: 0, oy: 0 },
     { src: 'neon-street', zoom: 100, ox: 0, oy: 0 },
     { src: 'lifeguard', zoom: 100, ox: 0, oy: 0 },
     { src: 'waves', zoom: 100, ox: 0, oy: 0 },
@@ -823,29 +827,42 @@ export function drawViceArt(ctx, kind, x, y, w, h, grade) {
   ctx.restore();
 }
 
-/** The one grade that unifies every panel: a warm magenta wash (stronger
- *  at the bottom) + vignette, applied identically to photos and art. */
+/** The one grade that unifies every panel: a warm magenta duotone wash
+ *  (stronger at the bottom) + vignette, applied identically to photos and
+ *  art. v4: pushed harder — deeper violet foot, stronger tint — so the
+ *  whole cover reads as one poster, never as clean photos next to art. */
 export function applyGradeWash(ctx, x, y, w, h, grade) {
   const g = GRADES[grade];
   const wash = ctx.createLinearGradient(0, y, 0, y + h);
-  wash.addColorStop(0, 'rgba(255,122,61,0)');
-  wash.addColorStop(0.6, g.tint);
-  wash.addColorStop(1, 'rgba(43,26,94,0.42)');
+  wash.addColorStop(0, 'rgba(255,122,61,0.02)');
+  wash.addColorStop(0.45, g.tint);
+  wash.addColorStop(0.75, 'rgba(255,46,136,0.14)');
+  wash.addColorStop(1, 'rgba(43,26,94,0.5)');
   ctx.fillStyle = wash; ctx.fillRect(x, y, w, h);
+  // Flat magenta duotone kiss over the whole panel.
+  ctx.fillStyle = 'rgba(255,46,136,0.07)';
+  ctx.fillRect(x, y, w, h);
   const vig = ctx.createRadialGradient(x + w / 2, y + h / 2, Math.min(w, h) * 0.35, x + w / 2, y + h / 2, Math.max(w, h) * 0.75);
-  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(10,5,30,0.35)');
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(10,5,30,0.4)');
   ctx.fillStyle = vig; ctx.fillRect(x, y, w, h);
 }
 
 /** Halftone print dots over a rect — the "Poster Ink" texture that makes
- *  photos and procedural art read as one printed poster. v3: finer grain
- *  (smaller step, smaller dots) so the print reads sharp at 1920x1080. */
+ *  photos and procedural art read as one printed poster. v4: BIG comic
+ *  dots (top-3 posterize style) — a dark pass plus a magenta pass offset
+ *  by half a step — so the print reads at a glance, not just up close. */
 export function applyPosterInk(ctx, x, y, w, h) {
-  const step = Math.max(5, Math.min(8, w * 0.008));
-  ctx.fillStyle = 'rgba(18,8,43,0.08)';
+  const step = Math.max(9, Math.min(16, w * 0.018));
+  ctx.fillStyle = 'rgba(18,8,43,0.13)';
   for (let py = y + step / 2; py < y + h; py += step) {
     for (let px = x + step / 2; px < x + w; px += step) {
-      ctx.beginPath(); ctx.arc(px, py, step * 0.18, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, step * 0.3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.fillStyle = 'rgba(255,46,136,0.07)';
+  for (let py = y + step; py < y + h; py += step) {
+    for (let px = x + step; px < x + w; px += step) {
+      ctx.beginPath(); ctx.arc(px, py, step * 0.22, 0, Math.PI * 2); ctx.fill();
     }
   }
 }
@@ -876,7 +893,7 @@ export function drawPhotoPanel(ctx, photo, panel, x, y, w, h, grade) {
   sy += ((panel.oy || 0) / 100) * sh;
   sx = Math.max(0, Math.min(nw - sw, sx));
   sy = Math.max(0, Math.min(nh - sh, sy));
-  try { ctx.filter = 'saturate(1.28) contrast(1.1)'; } catch { /* older canvas */ }
+  try { ctx.filter = 'saturate(1.5) contrast(1.22) brightness(1.02)'; } catch { /* older canvas */ }
   ctx.drawImage(photo, sx, sy, sw, sh, x, y, w, h);
   try { ctx.filter = 'none'; } catch { /* ignore */ }
   applyGradeWash(ctx, x, y, w, h, grade);
@@ -905,14 +922,18 @@ export function drawHeroPhoto(ctx, photo, panel, x, y, w, h, grade) {
   const fw = nw * fgScale, fh = nh * fgScale;
   const fx = panel.fx ?? 0.5;
   const fcx = x + w * (0.5 + (fx - 0.5) * 0.3);
-  try { ctx.filter = 'saturate(1.28) contrast(1.1)'; } catch { /* older canvas */ }
+  try { ctx.filter = 'saturate(1.5) contrast(1.22) brightness(1.02)'; } catch { /* older canvas */ }
   ctx.drawImage(photo, fcx - fw / 2, y + (h - fh) / 2, fw, fh);
   try { ctx.filter = 'none'; } catch { /* ignore */ }
   applyGradeWash(ctx, x, y, w, h, grade);
   ctx.restore();
 }
 
-/** Bold condensed title with a hard offset shadow, fitted to maxWidth and maxHeight. */
+/** Bold condensed title with a THICK black outline, a hard offset shadow
+ *  and a neon glow, fitted to maxWidth and maxHeight. v4: the outline is
+ *  what lets the giant title sit ON the photos and still read — no band
+ *  behind it. Start size is ~19% of the width so the title runs nearly
+ *  full-bleed, like the top entries. */
 export function drawTitleBlock(ctx, state, cx, baselineY, maxWidth, maxHeight = Infinity) {
   const title = (state.title || '').trim().toUpperCase();
   if (!title) return 0;
@@ -924,148 +945,140 @@ export function drawTitleBlock(ctx, state, cx, baselineY, maxWidth, maxHeight = 
   };
   const stops = palettes[state.titleColor] || palettes.white;
   const shadow = state.titleColor === 'yellow' ? '#160a33' : '#ff2e88';
-  let size = fitFont(ctx, title, (maxWidth * 0.16) * (state.titleScale / 100), maxWidth, '"Anton", "Archivo Black", sans-serif');
+  let size = fitFont(ctx, title, (maxWidth * 0.19) * (state.titleScale / 100), maxWidth, '"Anton", "Archivo Black", sans-serif');
   size = Math.min(size, maxHeight);
   ctx.font = `${size}px "Anton", "Archivo Black", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.lineJoin = 'round';
   const metrics = ctx.measureText(title);
-  const grad = ctx.createLinearGradient(cx - metrics.width / 2, 0, cx + metrics.width / 2, 0);
+  const grad = ctx.createLinearGradient(cx - metrics.width / 2, baselineY - size, cx + metrics.width / 2, baselineY);
   grad.addColorStop(0, stops[0]); grad.addColorStop(0.45, stops[1]);
   grad.addColorStop(0.75, stops[2]); grad.addColorStop(1, stops[3]);
-  const off = Math.max(3, size * 0.06);
+  const off = Math.max(3, size * 0.055);
+  // Hard offset shadow, then the thick black outline, then the gradient
+  // fill with a pink neon glow — the letters punch through any photo.
   ctx.fillStyle = shadow;
   ctx.fillText(title, cx + off, baselineY + off);
+  ctx.lineWidth = Math.max(4, size * 0.1);
+  ctx.strokeStyle = '#160a33';
+  ctx.strokeText(title, cx, baselineY);
+  ctx.save();
+  ctx.shadowColor = '#ff2e88'; ctx.shadowBlur = size * 0.14;
   ctx.fillStyle = grad;
   ctx.fillText(title, cx, baselineY);
+  ctx.restore();
   return size;
 }
 
-/** The dedicated title band: tagline, giant gradient title, subtitle and
- *  two sticker badges — all on solid navy, never over any photo. */
-export function drawTitleBand(ctx, state, W, H) {
-  const bandH = Math.round(H * 0.235);
-  const by = H - bandH;
-  ctx.fillStyle = '#12082b';
-  ctx.fillRect(0, by, W, bandH);
-  ctx.fillStyle = '#ff2e88';
-  ctx.fillRect(0, by, W, Math.max(4, bandH * 0.025));
-  // v3: faint gold dot texture across the band so the navy never reads
-  // as a flat empty field.
-  ctx.fillStyle = 'rgba(255,215,106,0.07)';
-  const dotStep = Math.max(14, W * 0.012);
-  for (let py = by + dotStep; py < by + bandH; py += dotStep) {
-    for (let px = dotStep / 2; px < W; px += dotStep) {
-      ctx.beginPath(); ctx.arc(px, py, Math.max(1, dotStep * 0.06), 0, Math.PI * 2); ctx.fill();
-    }
+/** Spiky starburst badge: yellow star with a thick black outline, "NEW"
+ *  over "SUMMER 2026". Sits top-left, overlapping the hero corner. */
+export function drawStarburst(ctx, cx, cy, r, tilt = -0.12) {
+  const spikes = 14;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(tilt);
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+    const rr = i % 2 ? r * 0.78 : r;
+    const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
   }
-  // Thin gold hairline under the pink rule + tiny stars in the corners.
-  ctx.fillStyle = 'rgba(255,215,106,0.5)';
-  ctx.fillRect(0, by + Math.max(4, bandH * 0.025) + 3, W, 1);
-  const star = (sx, sy, r) => {
-    ctx.fillStyle = 'rgba(255,215,106,0.8)';
-    ctx.beginPath();
-    ctx.moveTo(sx, sy - r); ctx.quadraticCurveTo(sx, sy, sx + r, sy);
-    ctx.quadraticCurveTo(sx, sy, sx, sy + r); ctx.quadraticCurveTo(sx, sy, sx - r, sy);
-    ctx.quadraticCurveTo(sx, sy, sx, sy - r); ctx.fill();
-  };
-  star(W * 0.02, by + bandH * 0.14, Math.max(4, bandH * 0.03));
-  star(W * 0.98, by + bandH * 0.14, Math.max(4, bandH * 0.03));
+  ctx.closePath();
+  ctx.fillStyle = '#ffd76a';
+  ctx.fill();
+  ctx.lineWidth = Math.max(3, r * 0.07);
+  ctx.strokeStyle = '#160a33';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.fillStyle = '#160a33';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${r * 0.52}px "Anton", "Archivo Black", sans-serif`;
+  ctx.fillText('NEW', 0, -r * 0.18);
+  ctx.font = `${r * 0.26}px "Bebas Neue", sans-serif`;
+  ctx.fillText('SUMMER 2026', 0, r * 0.3);
+  ctx.restore();
+}
+
+/** Small round gold "EST. 2026" stamp, top-right over the sky. */
+export function drawStampBadge(ctx, cx, cy, r) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,215,106,0.14)'; ctx.fill();
+  ctx.strokeStyle = '#ffd76a'; ctx.lineWidth = Math.max(2, r * 0.07);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,215,106,0.7)'; ctx.lineWidth = Math.max(1, r * 0.04);
+  ctx.stroke();
+  ctx.fillStyle = '#ffd76a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${r * 0.4}px "Bebas Neue", sans-serif`;
+  ctx.fillText('EST.', cx, cy - r * 0.2);
+  ctx.fillText('2026', cx, cy + r * 0.3);
+  ctx.restore();
+}
+
+/** The title OVERLAY (v4): no separate band — the giant gradient title
+ *  sits ON the art, over a dark sunset scrim across the bottom third of
+ *  the grid. Subtitle caps above it, neon script tagline below it. The
+ *  scrim + thick outline keep every letter readable over any photo, and
+ *  the faces (hero top, pier middle row) stay clear of the lettering zone. */
+export function drawTitleOverlay(ctx, state, W, H) {
   const cx = W / 2;
-  // Measure the badges FIRST: the title only gets the width that is left
-  // between them, so a long title can never run under a badge.
-  const pillH = Math.min(bandH * 0.3, W * 0.055);
-  let pillFont = pillH * 0.52;
-  const pillText = 'NEW · SUMMER 2026';
-  ctx.font = `${pillFont}px "Bebas Neue", sans-serif`;
-  let pillW = ctx.measureText(pillText).width + pillH * 1.1;
-  if (pillW > W * 0.26) {
-    pillFont *= (W * 0.26) / pillW;
-    ctx.font = `${pillFont}px "Bebas Neue", sans-serif`;
-    pillW = ctx.measureText(pillText).width + pillH * 1.1;
-  }
-  const stampR = Math.min(bandH * 0.3, W * 0.075);
-  const titleMaxW = Math.max(W - pillW - stampR * 2 - 100, W * 0.3);
-  // Tagline in neon script, gold-pink with a soft glow.
-  const tag = (state.tagline || '').trim();
-  if (tag) {
-    ctx.font = `${Math.max(16, bandH * 0.15)}px "Pacifico", cursive`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.shadowColor = '#ff2e88'; ctx.shadowBlur = bandH * 0.09;
-    ctx.fillStyle = '#ffd7ef';
-    ctx.fillText(tag, cx, by + bandH * 0.22);
-    ctx.shadowBlur = 0;
-  }
-  const size = drawTitleBlock(ctx, state, cx, by + bandH * 0.6, titleMaxW, bandH * 0.36);
-  void size;
+  // Sunset scrim: transparent at 62% height, deep violet by the bottom.
+  const scrim = ctx.createLinearGradient(0, H * 0.62, 0, H);
+  scrim.addColorStop(0, 'rgba(13,5,36,0)');
+  scrim.addColorStop(0.45, 'rgba(13,5,36,0.45)');
+  scrim.addColorStop(1, 'rgba(13,5,36,0.68)');
+  ctx.fillStyle = scrim;
+  ctx.fillRect(0, H * 0.62, W, H * 0.38);
+  // Subtitle in letterspaced gold caps, just above the title.
   const sub = (state.subtitle || '').trim().toUpperCase();
   if (sub) {
     try { ctx.letterSpacing = '4px'; } catch { /* ignore */ }
-    const sSize = Math.min(fitFont(ctx, sub, bandH * 0.13, Math.min(W * 0.5, titleMaxW), '"Bebas Neue", sans-serif'), bandH * 0.13);
+    const sSize = Math.min(fitFont(ctx, sub, H * 0.042, W * 0.62, '"Bebas Neue", sans-serif'), H * 0.042);
     ctx.font = `${sSize}px "Bebas Neue", sans-serif`;
-    ctx.textAlign = 'center'; ctx.fillStyle = '#ffd76a';
-    ctx.fillText(sub, cx, by + bandH * 0.88);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#ffd76a';
+    ctx.fillText(sub, cx, H * 0.715);
     try { ctx.letterSpacing = '0px'; } catch { /* ignore */ }
-    // v3: ornament rules with a diamond, flanking the subtitle so the
-    // band's lower corners feel finished instead of empty.
+    // Gold rules flanking the subtitle.
     const subW = ctx.measureText(sub).width;
-    const oy = by + bandH * 0.86;
-    ctx.strokeStyle = 'rgba(255,215,106,0.65)'; ctx.lineWidth = Math.max(1, bandH * 0.008);
+    const oy = H * 0.705;
+    ctx.strokeStyle = 'rgba(255,215,106,0.65)'; ctx.lineWidth = Math.max(1, H * 0.002);
     for (const dir of [-1, 1]) {
-      const x0 = cx + dir * (subW / 2 + 24);
-      const x1 = cx + dir * (subW / 2 + Math.min(W * 0.12, 190));
+      const x0 = cx + dir * (subW / 2 + 22);
+      const x1 = cx + dir * (subW / 2 + Math.min(W * 0.1, 170));
       ctx.beginPath(); ctx.moveTo(x0, oy); ctx.lineTo(x1, oy); ctx.stroke();
-      const dx = x1 + dir * 10;
-      ctx.fillStyle = '#ffd76a';
-      ctx.save(); ctx.translate(dx, oy); ctx.rotate(Math.PI / 4);
-      const dr = Math.max(3, bandH * 0.02);
-      ctx.fillRect(-dr / 2, -dr / 2, dr, dr); ctx.restore();
     }
   }
-  // v3: micro-credits tucked under the badges — the band's outer thirds
-  // now carry type instead of bare navy.
-  ctx.fillStyle = 'rgba(255,215,106,0.85)';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.font = `${Math.max(10, bandH * 0.075)}px "Bebas Neue", sans-serif`;
-  ctx.fillText('VICE COVER STUDIO', pillW / 2 + 14, by + bandH * 0.94);
-  ctx.fillText('ORIGINAL ARTWORK', W - stampR - 14, by + bandH * 0.94);
-  // Sticker badges: a tilted "NEW · SUMMER 2026" pill (left) and a round
-  // "EST. 2026" stamp (right). They sit in the band's empty corners, clear
-  // of the centred title and never clipped by the canvas edge.
-  ctx.save();
-  const pillX = pillW / 2 + 14;
-  ctx.translate(pillX, by + bandH * 0.52);
-  ctx.rotate(-0.07);
-  ctx.fillStyle = '#ff2e88';
-  ctx.font = `${pillFont}px "Bebas Neue", sans-serif`;
-  ctx.beginPath();
-  ctx.roundRect(-pillW / 2, -pillH / 2, pillW, pillH, pillH / 2);
-  ctx.fill();
-  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(pillText, 0, pillH * 0.03);
-  ctx.restore();
-  const r = stampR;
-  const stampX = W - r - 14, stampY = by + bandH * 0.52;
-  ctx.save();
-  ctx.beginPath(); ctx.arc(stampX, stampY, r, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,215,106,0.12)'; ctx.fill();
-  ctx.strokeStyle = '#ffd76a'; ctx.lineWidth = Math.max(2, r * 0.08);
-  ctx.stroke();
-  ctx.fillStyle = '#ffd76a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${r * 0.42}px "Bebas Neue", sans-serif`;
-  ctx.fillText('EST.', stampX, stampY - r * 0.22);
-  ctx.fillText('2026', stampX, stampY + r * 0.28);
-  ctx.restore();
-  return { x: 0, y: by, w: W, h: bandH };
+  // Giant title overlapping the bottom panels.
+  drawTitleBlock(ctx, state, cx, H * 0.9, W * 0.97, H * 0.17);
+  // Neon script tagline under the title.
+  const tag = (state.tagline || '').trim();
+  if (tag) {
+    ctx.font = `${Math.max(16, H * 0.052)}px "Pacifico", cursive`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = '#ff2e88'; ctx.shadowBlur = H * 0.012;
+    ctx.fillStyle = '#ffd7ef';
+    ctx.fillText(tag, cx, H * 0.972);
+    ctx.shadowBlur = 0;
+  }
+  // Badges over the top corners, clear of both faces.
+  const bR = Math.min(W, H) * 0.082;
+  drawStarburst(ctx, W * 0.085, H * 0.082, bR);
+  drawStampBadge(ctx, W * 0.925, H * 0.075, Math.min(W, H) * 0.052);
+  return { x: 0, y: Math.round(H * 0.62), w: W, h: Math.round(H * 0.38) };
 }
 
+
 /** Compute the panel rectangles for a layout. Returns [{x,y,w,h}, ...]
- *  in panel order; the title band takes the bottom 23.5% of the canvas. */
+ *  in panel order. v4: the grid fills the WHOLE canvas — no title band —
+ *  with THIN BLACK gutters, so the panels sit tight together and the
+ *  giant title overlaps the art instead of living in a separate strip. */
 export function panelRects(layout, W, H) {
-  const gut = Math.round(Math.min(W, H) * 0.012);
-  const border = Math.round(Math.min(W, H) * 0.014);
-  const bandH = Math.round(H * 0.235);
-  const gridBottom = H - bandH - gut;
-  const inner = { x: border, y: border, w: W - border * 2, h: gridBottom - border };
+  const gut = Math.max(4, Math.round(Math.min(W, H) * 0.006));
+  const border = gut;
+  const inner = { x: border, y: border, w: W - border * 2, h: H - border * 2 };
   if (layout === 'solo') return [{ ...inner }];
   if (layout === 'wide') {
     const heroH = Math.round(inner.h * 0.6);
@@ -1106,8 +1119,8 @@ function panelPhoto(panel, photos) {
 export function drawCoverArt(canvas, state, photos) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  // Warm cream paper: gutters read as a printed poster, not a dark grid.
-  ctx.fillStyle = '#fdf0d5';
+  // Near-black violet: gutters read as thin black print lines, not cream.
+  ctx.fillStyle = '#0d0524';
   ctx.fillRect(0, 0, W, H);
   const rects = panelRects(state.layout, W, H);
   const count = state.layout === 'classic' ? 6 : state.layout === 'wide' ? 4 : 1;
@@ -1141,12 +1154,20 @@ export function drawCoverArt(canvas, state, photos) {
     }
     // One print pass over every panel, so photos and art share the grade.
     applyPosterInk(ctx, r.x, r.y, r.w, r.h);
-    // Thick ink outline around every panel, comic-book style.
-    ctx.strokeStyle = 'rgba(18,8,43,0.95)';
-    ctx.lineWidth = Math.max(2, Math.min(W, H) * 0.006);
+    // Thin ink outline around every panel, comic-book style.
+    ctx.strokeStyle = 'rgba(18,8,43,0.9)';
+    ctx.lineWidth = Math.max(2, Math.min(W, H) * 0.004);
     ctx.strokeRect(r.x, r.y, r.w, r.h);
   }
-  // Dedicated caption band — the title never touches a photo.
-  drawTitleBand(ctx, state, W, H);
+  // One global grade pass over the whole grid — a diagonal sunset wash —
+  // so every panel, photo or art, shares exactly one colour temperature.
+  const globalGrade = ctx.createLinearGradient(0, 0, W, H);
+  globalGrade.addColorStop(0, 'rgba(255,46,136,0.06)');
+  globalGrade.addColorStop(0.55, 'rgba(255,122,61,0.03)');
+  globalGrade.addColorStop(1, 'rgba(255,46,136,0.08)');
+  ctx.fillStyle = globalGrade;
+  ctx.fillRect(0, 0, W, H);
+  // Giant title overlapping the art — the caption IS the poster now.
+  drawTitleOverlay(ctx, state, W, H);
   return rects;
 }
