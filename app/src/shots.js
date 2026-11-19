@@ -2,6 +2,9 @@
 // ?shot=editor shows the editor with sample photos loaded, ?shot=wide and
 // ?shot=portrait show the other layouts and sizes. window.__shotReady is set
 // once the scene is painted with fonts loaded.
+// v2: classic is a 6-panel hero mosaic (hero boulevard 2x2 + skyline +
+// pier + sportscar + flamingo + neon street); every photo appears ONCE and
+// the caption lives in its own title band, never over a face.
 export async function runShot(shot, query, app) {
   const { state, setPhotoSlot, redraw, buildPanelGrid, syncPanelControls } = app;
   const caption = query.get('caption');
@@ -18,38 +21,40 @@ export async function runShot(shot, query, app) {
   const photo2 = query.get('photo2');
   await setPhotoSlot(0, `samples/${photo}.jpg`);
   if (photo2) await setPhotoSlot(1, `samples/${photo2}.jpg`);
+  // Resolve which slot holds which sample: 'photo0' is `photo`, 'photo1'
+  // is `photo2`. The hero is always the boulevard woman, the pier
+  // fisherman gets his own single panel — each used exactly once.
+  const bvd = photo === 'boulevard' ? 'photo0' : 'photo1';
+  const pier = photo === 'pier' ? 'photo0' : 'photo1';
+  const heroFocus = { zoom: 100, ox: 0, oy: 0, fx: 0.52, fy: 0.20 };
+  const pierFocus = { zoom: 100, ox: 0, oy: 0, fx: 0.47, fy: 0.22 };
 
-  // Curated panel recipes per scene so each screenshot is a real poster.
   if (shot === 'cover' || shot === 'portrait' || shot === 'wide') {
     if (state.layout === 'classic') {
-      state.panels[0].src = photo2 ? 'photo1' : 'skyline';
-      state.panels[1].src = 'photo0';
-      state.panels[2].src = 'palms';
-      state.panels[3].src = photo2 ? 'photo1' : 'waves';
-      state.panels[4].src = 'photo0';
-      state.panels[4].zoom = 112;
-      state.panels[5].src = 'neon-sun';
-      state.panels[6].src = photo2 ? 'photo1' : 'skyline';
-      state.panels[7].src = 'photo0';
-      state.panels[8].src = 'flamingo';
-    } else if (state.layout === 'wide') {
-      state.panels[0].src = 'photo0';
-      state.panels[0].zoom = 105;
-      state.panels[0].oy = 30;
+      state.panels[0].src = bvd; Object.assign(state.panels[0], heroFocus);
       state.panels[1].src = 'skyline';
-      state.panels[2].src = photo2 ? 'photo1' : 'palms';
+      state.panels[2].src = pier; Object.assign(state.panels[2], pierFocus);
+      state.panels[3].src = 'sportscar';
+      state.panels[4].src = 'flamingo';
+      state.panels[5].src = 'neon-street';
+    } else if (state.layout === 'wide') {
+      state.panels[0].src = photo2 ? bvd : 'photo0';
+      Object.assign(state.panels[0], photo2 ? heroFocus : pierFocus);
+      state.panels[1].src = 'skyline';
+      state.panels[2].src = 'lifeguard';
       state.panels[3].src = 'flamingo';
     } else {
-      state.panels[0].src = 'photo0';
-      state.panels[0].zoom = 120;
+      state.panels[0].src = photo2 ? bvd : 'photo0';
+      Object.assign(state.panels[0], photo2 ? heroFocus : pierFocus);
     }
   }
   if (shot === 'editor') {
-    state.panels[4].src = 'photo0';
-    state.panels[0].src = 'skyline';
-    state.panels[1].src = 'photo0';
-    state.panels[2].src = 'palms';
-    state.panels[8].src = 'flamingo';
+    state.panels[0].src = bvd; Object.assign(state.panels[0], heroFocus);
+    state.panels[1].src = 'skyline';
+    state.panels[2].src = pier; Object.assign(state.panels[2], pierFocus);
+    state.panels[3].src = 'sportscar';
+    state.panels[4].src = 'flamingo';
+    state.panels[5].src = 'neon-street';
   }
 
   const titleInput = document.getElementById('title');
