@@ -31,13 +31,14 @@
       <div class="row">
         <label>Layout
           <select id="layout">
-            <option value="classic">Classic 3 × 3 grid</option>
+            <option value="classic">Hero mosaic · 6 panels</option>
             <option value="wide">Hero wide + strip</option>
             <option value="solo">Solo poster</option>
           </select>
         </label>
         <label>Grade
           <select id="grade">
+            <option value="poster">Poster Ink</option>
             <option value="sunset">Sunset pink</option>
             <option value="golden">Golden hour</option>
             <option value="neon">Neon night</option>
@@ -56,7 +57,7 @@
         <label class="check"><input id="fillArt" type="checkbox" checked> Fill empty panels with Vice art</label>
       </div>
 
-      <h2>3 · Panels <span class="hint">— click a panel in the preview to select it</span></h2>
+      <h2>3 · Panels <span class="hint">— click a panel in the preview to select it · photos are cropped face-safe, faces stay whole · each photo is used once</span></h2>
       <div class="panel-grid" id="panelGrid" role="group" aria-label="Panels"></div>
       <div class="row sliders">
         <label>Photo in panel
@@ -74,9 +75,9 @@
       </div>
 
       <h2>4 · Caption</h2>
-      <label>Title <input id="title" type="text" maxlength="24" value="SUNSET HEIST"></label>
-      <label>Subtitle <input id="subtitle" type="text" maxlength="40" value="VICE CITY · 2026"></label>
-      <label>Neon tagline <input id="tagline" type="text" maxlength="30" value="one last ride"></label>
+      <label>Title <input id="title" type="text" maxlength="24" value="VICE SUNSET"></label>
+      <label>Subtitle <input id="subtitle" type="text" maxlength="40" value="VICE CITY · SUMMER 2026"></label>
+      <label>Neon tagline <input id="tagline" type="text" maxlength="30" value="chasing the last light"></label>
       <div class="row">
         <label>Title colour
           <select id="titleColor">
@@ -93,7 +94,7 @@
         <button id="exportAll" type="button" class="ghost">Export all 3 sizes</button>
       </div>
       <p id="status" role="status">Load a photo — or use a sample — then export.</p>
-      <p class="fine">Photos never leave your machine. Fonts: Anton, Bebas Neue, Archivo Black, Pacifico (SIL OFL). No game artwork or logos.</p>
+      <p class="fine">Photos never leave your machine. One Poster Ink grade unifies every panel. Fonts: Anton, Bebas Neue, Archivo Black, Pacifico (SIL OFL). No game artwork or logos.</p>
     </section>
 
     <section class="panel preview" aria-label="Live preview">
