@@ -12,7 +12,7 @@ let fontsReady = false;
 const PANEL_LABELS = ['Skyline', 'Palms', 'Flamingo', 'Neon sun', 'Waves'];
 
 function panelCount() {
-  return state.layout === 'classic' ? 9 : state.layout === 'wide' ? 4 : 1;
+  return state.layout === 'classic' ? 6 : state.layout === 'wide' ? 4 : 1;
 }
 
 function sourceOptions() {
@@ -32,7 +32,7 @@ function buildPanelGrid() {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'panel-btn' + (i === state.selected ? ' selected' : '');
-    b.textContent = state.layout === 'classic' ? `Panel ${i + 1}${i === 4 ? ' ★ hero' : ''}` : `Panel ${i + 1}${i === 0 ? ' ★ hero' : ''}`;
+    b.textContent = `Panel ${i + 1}${i === 0 ? ' ★ hero' : ''}`;
     b.title = `Select panel ${i + 1}`;
     b.addEventListener('click', () => { state.selected = i; syncPanelControls(); redraw(); });
     grid.appendChild(b);
@@ -107,8 +107,8 @@ $('sampleBoulevard').addEventListener('click', () => setPhotoSlot(1, 'samples/bo
 $('sampleBoth').addEventListener('click', async () => {
   await setPhotoSlot(0, 'samples/pier.jpg');
   await setPhotoSlot(1, 'samples/boulevard.jpg');
+  // Hero = boulevard (face whole), pier fisherman in his own panel once.
   state.panels[0].src = 'photo1'; state.panels[2].src = 'photo0';
-  state.panels[4].src = 'photo0'; state.panels[6].src = 'photo1';
   syncPanelControls(); redraw();
 });
 
@@ -138,17 +138,18 @@ bindRange('offX', 'offXOut', 'ox', (v) => `${v}`);
 bindRange('offY', 'offYOut', 'oy', (v) => `${v}`);
 
 $('shuffle').addEventListener('click', () => {
+  // Every art panel gets a DIFFERENT kind — no repeats anywhere.
   const kinds = [...ART_KINDS];
   for (let i = kinds.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
   }
   const n = panelCount();
+  let k = 0;
   for (let i = 0; i < n; i++) {
-    if (i === 4 && state.layout === 'classic') continue; // hero keeps the photo
-    if (i === 0 && state.layout !== 'classic') continue;
+    if (i === 0) continue; // hero keeps the photo
     const p = state.panels[i];
-    if (!p.src.startsWith('photo')) p.src = kinds[i % kinds.length];
+    if (!p.src.startsWith('photo')) p.src = kinds[k++ % kinds.length];
   }
   syncPanelControls(); redraw();
 });
@@ -156,10 +157,16 @@ $('shuffle').addEventListener('click', () => {
 $('fillPhotos').addEventListener('click', () => {
   const loaded = photos.map((p, i) => (p ? `photo${i}` : null)).filter(Boolean);
   if (!loaded.length) { $('status').textContent = 'Load a photo first (or a sample).'; return; }
+  // Each photo is placed at most ONCE — photo panels take the next unused
+  // photo, art panels keep their (different) art.
   const n = panelCount();
-  for (let i = 0; i < n; i++) state.panels[i].src = loaded[i % loaded.length];
+  let k = 0;
+  for (let i = 0; i < n; i++) {
+    const p = state.panels[i];
+    if (p.src.startsWith('photo') && k < loaded.length) p.src = loaded[k++];
+  }
   syncPanelControls(); redraw();
-  $('status').textContent = 'Your photos now fill every panel — drag zoom / move per panel.';
+  $('status').textContent = 'Each photo placed once — art fills the rest.';
 });
 
 $('title').addEventListener('input', (e) => { state.title = e.target.value; redraw(); });
