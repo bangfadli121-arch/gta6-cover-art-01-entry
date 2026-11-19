@@ -32,10 +32,10 @@ export async function runShot(shot, query, app) {
   if (shot === 'cover' || shot === 'portrait' || shot === 'wide') {
     if (state.layout === 'classic') {
       state.panels[0].src = bvd; Object.assign(state.panels[0], heroFocus);
-      state.panels[1].src = 'skyline';
+      state.panels[1].src = 'flamingo';
       state.panels[2].src = pier; Object.assign(state.panels[2], pierFocus);
       state.panels[3].src = 'sportscar';
-      state.panels[4].src = 'flamingo';
+      state.panels[4].src = 'skyline';
       state.panels[5].src = 'neon-street';
     } else if (state.layout === 'wide') {
       state.panels[0].src = photo2 ? bvd : 'photo0';
@@ -50,10 +50,10 @@ export async function runShot(shot, query, app) {
   }
   if (shot === 'editor') {
     state.panels[0].src = bvd; Object.assign(state.panels[0], heroFocus);
-    state.panels[1].src = 'skyline';
+    state.panels[1].src = 'flamingo';
     state.panels[2].src = pier; Object.assign(state.panels[2], pierFocus);
     state.panels[3].src = 'sportscar';
-    state.panels[4].src = 'flamingo';
+    state.panels[4].src = 'skyline';
     state.panels[5].src = 'neon-street';
   }
 
