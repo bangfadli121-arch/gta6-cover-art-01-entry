@@ -1,4 +1,4 @@
-// Vice Cover Studio v2 — cover drawing engine.
+// Vice Cover Studio v3 — cover drawing engine.
 // Hero-led poster: one BIG hero panel + supporting panels, every panel a
 // DIFFERENT visual, faces kept whole by a face-aware crop, and one strong
 // "Poster Ink" grade (sunset duotone wash + halftone print dots + cream
@@ -6,6 +6,10 @@
 // OWN dedicated title band at the bottom — text never sits on a face.
 // Layouts: classic (hero mosaic, 6 panels), wide (hero + strip, 4 panels),
 // solo (one photo, 1 panel). Export sizes: 1080x1080, 1080x1350, 1920x1080.
+// v3: detailed 3D sportscar (layered shading, glass, lit lights, spoked
+// rims, road reflection), brighter neon street (readable word signs, lamps,
+// wet reflections, pedestrians), filled title band (credits + ornaments),
+// finer halftone grain everywhere for a sharper HD print.
 
 export const SIZES = {
   '1080x1080': [1080, 1080],
@@ -137,12 +141,18 @@ function drawSkyline(ctx, x, y, w, h, grade) {
     const a = (i / 8) * Math.PI * 2;
     ctx.beginPath(); ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, r * 0.1, 0, Math.PI * 2); ctx.fill();
   }
-  // Lit windows on the front towers.
-  ctx.fillStyle = 'rgba(255,215,106,0.9)';
-  for (let i = 0; i < 26; i++) {
+  // Lit windows on the front towers — denser, brighter, three colours.
+  const winCols = ['rgba(255,215,106,0.95)', 'rgba(34,211,238,0.85)', 'rgba(255,93,177,0.85)'];
+  for (let i = 0; i < 40; i++) {
     const wx = x + ((i * 53) % 100) / 100 * w;
     const wy = y + h * 0.55 + ((i * 29) % 40) / 100 * h;
-    ctx.fillRect(wx, wy, Math.max(2, w * 0.012), Math.max(2, w * 0.012));
+    ctx.fillStyle = winCols[i % 3];
+    ctx.fillRect(wx, wy, Math.max(2, w * 0.014), Math.max(2, w * 0.014));
+  }
+  // Rooftop beacon dots.
+  ctx.fillStyle = '#ff5d7a';
+  for (const [bx2, by2] of [[0.12, 0.44], [0.55, 0.5], [0.9, 0.4]]) {
+    ctx.beginPath(); ctx.arc(x + w * bx2, y + h * by2, Math.max(2, w * 0.008), 0, Math.PI * 2); ctx.fill();
   }
   // Water band with a little boat.
   const water = ctx.createLinearGradient(0, y + h * 0.88, 0, y + h);
@@ -241,8 +251,9 @@ function drawFlamingo(ctx, x, y, w, h, grade) {
   sky.addColorStop(0.7, '#ff7a3d');
   sky.addColorStop(1, '#ffb347');
   ctx.fillStyle = sky; ctx.fillRect(x, y, w, h * 0.62);
-  // Low sun + glow.
-  const sx = x + w * 0.68, sy = y + h * 0.34, sr = Math.min(w, h) * 0.13;
+  // Low sun + glow — parked LEFT of the big flamingo so its beak (which
+  // points right) can never touch the sun disc.
+  const sx = x + w * 0.56, sy = y + h * 0.3, sr = Math.min(w, h) * 0.12;
   const glow = ctx.createRadialGradient(sx, sy, sr * 0.2, sx, sy, sr * 2.4);
   glow.addColorStop(0, 'rgba(255,215,106,0.9)');
   glow.addColorStop(1, 'rgba(255,215,106,0)');
@@ -343,99 +354,265 @@ function drawWaves(ctx, x, y, w, h, grade) {
 }
 
 function drawSportscar(ctx, x, y, w, h, grade) {
-  // Orange sportscar tearing down a sunset boulevard: sky, low sun, palm
-  // silhouettes, asphalt with gold dashes, speed lines, headlight beam.
-  drawSunsetSky(ctx, x, y, w, h * 0.62, grade, true);
+  // Red sportscar tearing down a sunset boulevard — rebuilt v3 as a
+  // detailed 3D car: layered body shading with a beltline highlight,
+  // reflective glass, glowing headlight + taillight, spoked rims with
+  // brake discs, panel lines, ground shadow AND a wet-road reflection.
+  drawSunsetSky(ctx, x, y, w, h * 0.6, grade, true);
   const g = GRADES[grade];
-  // Palm silhouettes at both edges.
-  ctx.strokeStyle = g.deep; ctx.lineWidth = Math.max(3, w * 0.014);
+  drawBirds(ctx, x, y, w, h * 0.3, 3);
+  // Distant city silhouette on the horizon, windows already lit.
+  ctx.fillStyle = g.deep;
+  let dx = x + w * 0.3;
+  while (dx < x + w * 0.62) {
+    const dw = w * (0.03 + ((dx * 11) % 10) / 160);
+    const dh = h * (0.05 + ((dx * 17) % 10) / 130);
+    ctx.fillRect(dx, y + h * 0.6 - dh, dw, dh);
+    dx += dw + w * 0.012;
+  }
+  ctx.fillStyle = 'rgba(255,215,106,0.95)';
+  for (let i = 0; i < 14; i++) {
+    const wx = x + w * (0.31 + ((i * 41) % 28) / 100);
+    const wy = y + h * (0.53 + ((i * 29) % 6) / 100);
+    ctx.fillRect(wx, wy, Math.max(1.5, w * 0.006), Math.max(1.5, w * 0.006));
+  }
+  // Palm silhouettes at both edges, with leaflet ticks on the fronds.
+  ctx.strokeStyle = g.deep; ctx.fillStyle = g.deep;
   const edgePalm = (px, lean) => {
-    ctx.beginPath(); ctx.moveTo(px, y + h * 0.62);
-    ctx.quadraticCurveTo(px + lean * w * 0.05, y + h * 0.4, px + lean * w * 0.09, y + h * 0.26); ctx.stroke();
-    const tx = px + lean * w * 0.09, ty = y + h * 0.26;
-    for (let k = 0; k < 5; k++) {
-      const a = -Math.PI * 0.9 + (k / 4) * Math.PI * 0.8;
-      const ex = tx + Math.cos(a) * w * 0.16, ey = ty + Math.sin(a) * h * 0.12;
-      ctx.beginPath(); ctx.moveTo(tx, ty);
-      ctx.quadraticCurveTo(tx + Math.cos(a) * w * 0.08, ty - h * 0.03, ex, ey); ctx.stroke();
+    ctx.lineWidth = Math.max(3, w * 0.014);
+    ctx.beginPath(); ctx.moveTo(px, y + h * 0.6);
+    ctx.quadraticCurveTo(px + lean * w * 0.05, y + h * 0.4, px + lean * w * 0.09, y + h * 0.24); ctx.stroke();
+    const tx = px + lean * w * 0.09, ty = y + h * 0.24;
+    ctx.lineWidth = Math.max(2, w * 0.01);
+    for (let k = 0; k < 6; k++) {
+      const a = -Math.PI * 0.95 + (k / 5) * Math.PI * 0.9;
+      const len = w * 0.17;
+      const ex = tx + Math.cos(a) * len, ey = ty + Math.sin(a) * h * 0.13;
+      const mx = tx + Math.cos(a) * len * 0.5, my = ty + Math.sin(a) * len * 0.5 - h * 0.03;
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+      // Leaflet ticks along the frond.
+      ctx.lineWidth = Math.max(1, w * 0.004);
+      for (let t = 1; t <= 3; t++) {
+        const lx = tx + (ex - tx) * (t / 4), ly = ty + (ey - ty) * (t / 4);
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx - w * 0.012, ly + h * 0.02); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + w * 0.012, ly + h * 0.02); ctx.stroke();
+      }
+      ctx.lineWidth = Math.max(2, w * 0.01);
     }
   };
   edgePalm(x + w * 0.04, 1); edgePalm(x + w * 0.96, -1);
-  // Road.
-  const road = ctx.createLinearGradient(0, y + h * 0.6, 0, y + h);
-  road.addColorStop(0, '#3a2566'); road.addColorStop(1, '#12082b');
-  ctx.fillStyle = road; ctx.fillRect(x, y + h * 0.6, w, h * 0.4);
+  // Road: perspective gradient + wet sunset sheen streaks.
+  const road = ctx.createLinearGradient(0, y + h * 0.58, 0, y + h);
+  road.addColorStop(0, '#3a2566'); road.addColorStop(0.5, '#241640'); road.addColorStop(1, '#12082b');
+  ctx.fillStyle = road; ctx.fillRect(x, y + h * 0.58, w, h * 0.42);
+  ctx.fillStyle = 'rgba(255,122,61,0.16)';
+  for (let i = 0; i < 4; i++) ctx.fillRect(x, y + h * (0.66 + i * 0.07), w, h * 0.012);
+  ctx.fillStyle = 'rgba(255,215,106,0.22)';
+  ctx.fillRect(x, y + h * 0.9, w, h * 0.014);
+  // Gold centre dashes, widening toward the viewer (perspective).
   ctx.fillStyle = '#ffd76a';
-  for (let i = 0; i < 4; i++) ctx.fillRect(x + w * (0.08 + i * 0.24), y + h * 0.93, w * 0.09, h * 0.02);
+  for (let i = 0; i < 4; i++) {
+    const dw = w * (0.05 + i * 0.02);
+    ctx.fillRect(x + w * (0.1 + i * 0.24) - dw / 2 + dw * 0.5, y + h * (0.9 + i * 0.018), dw, h * 0.016);
+  }
   // Speed lines behind the car.
   ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1.5, w * 0.005);
   for (let i = 0; i < 3; i++) {
-    const ly = y + h * (0.5 + i * 0.09);
+    const ly = y + h * (0.48 + i * 0.09);
     ctx.beginPath(); ctx.moveTo(x + w * 0.02, ly); ctx.lineTo(x + w * 0.2, ly); ctx.stroke();
   }
-  // Headlight beam.
-  const beam = ctx.createLinearGradient(x + w * 0.82, 0, x + w, 0);
+  const carTop = y + h * 0.56, carBase = y + h * 0.86, carX0 = x + w * 0.1, carX1 = x + w * 0.9;
+  // Soft ground shadow + tight contact shadow.
+  ctx.fillStyle = 'rgba(13,5,36,0.35)';
+  ctx.beginPath(); ctx.ellipse(x + w * 0.5, y + h * 0.9, w * 0.4, h * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(13,5,36,0.6)';
+  ctx.beginPath(); ctx.ellipse(x + w * 0.5, y + h * 0.875, w * 0.36, h * 0.035, 0, 0, Math.PI * 2); ctx.fill();
+  // Wet-road reflection of the car: flipped, squashed, faint.
+  ctx.save();
+  ctx.globalAlpha = 0.16;
+  ctx.translate(0, 2 * carBase + h * 0.02);
+  ctx.scale(1, -0.42);
+  const reflBody = ctx.createLinearGradient(0, carTop, 0, carBase);
+  reflBody.addColorStop(0, '#ff7a3d'); reflBody.addColorStop(1, '#c2185b');
+  ctx.fillStyle = reflBody;
+  ctx.beginPath();
+  ctx.moveTo(carX0, carBase);
+  ctx.lineTo(carX0 + w * 0.05, carTop + h * 0.12);
+  ctx.lineTo(carX0 + w * 0.3, carTop + h * 0.05);
+  ctx.lineTo(carX0 + w * 0.52, carTop + h * 0.03);
+  ctx.lineTo(carX0 + w * 0.64, carTop + h * 0.09);
+  ctx.lineTo(carX1 - w * 0.02, carTop + h * 0.13);
+  ctx.lineTo(carX1, carBase);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // Headlight beam cone (front = right).
+  const beam = ctx.createLinearGradient(x + w * 0.86, 0, x + w, 0);
   beam.addColorStop(0, 'rgba(255,240,180,0.85)'); beam.addColorStop(1, 'rgba(255,240,180,0)');
   ctx.fillStyle = beam;
   ctx.beginPath();
-  ctx.moveTo(x + w * 0.82, y + h * 0.68); ctx.lineTo(x + w, y + h * 0.6);
-  ctx.lineTo(x + w, y + h * 0.78); ctx.lineTo(x + w * 0.82, y + h * 0.74);
+  ctx.moveTo(x + w * 0.86, y + h * 0.7); ctx.lineTo(x + w, y + h * 0.6);
+  ctx.lineTo(x + w, y + h * 0.8); ctx.lineTo(x + w * 0.86, y + h * 0.76);
   ctx.closePath(); ctx.fill();
-  // Ground shadow.
-  ctx.fillStyle = 'rgba(13,5,36,0.55)';
-  ctx.beginPath(); ctx.ellipse(x + w * 0.5, y + h * 0.86, w * 0.36, h * 0.045, 0, 0, Math.PI * 2); ctx.fill();
-  // Car body: low wedge with a long hood.
-  const body = ctx.createLinearGradient(0, y + h * 0.55, 0, y + h * 0.85);
-  body.addColorStop(0, '#ff7a3d'); body.addColorStop(0.5, '#ff2e4d'); body.addColorStop(1, '#c2185b');
+  // Car body: layered vertical shading — hot highlight up top, deep red low.
+  const body = ctx.createLinearGradient(0, carTop, 0, carBase);
+  body.addColorStop(0, '#ffb347');
+  body.addColorStop(0.25, '#ff7a3d');
+  body.addColorStop(0.55, '#ff2e4d');
+  body.addColorStop(0.85, '#d4144e');
+  body.addColorStop(1, '#8f0f3d');
   ctx.fillStyle = body;
   ctx.beginPath();
-  ctx.moveTo(x + w * 0.14, y + h * 0.82);
-  ctx.lineTo(x + w * 0.18, y + h * 0.68);
-  ctx.lineTo(x + w * 0.38, y + h * 0.62);
-  ctx.lineTo(x + w * 0.6, y + h * 0.6);
-  ctx.lineTo(x + w * 0.72, y + h * 0.66);
-  ctx.lineTo(x + w * 0.86, y + h * 0.7);
-  ctx.lineTo(x + w * 0.88, y + h * 0.82);
+  ctx.moveTo(carX0, carBase);
+  ctx.lineTo(carX0 + w * 0.02, carTop + h * 0.16); // rear bumper up
+  ctx.lineTo(carX0 + w * 0.08, carTop + h * 0.13); // rear deck
+  ctx.lineTo(carX0 + w * 0.28, carTop + h * 0.06); // roofline start
+  ctx.lineTo(carX0 + w * 0.5, carTop + h * 0.03);  // roof
+  ctx.lineTo(carX0 + w * 0.62, carTop + h * 0.09); // windshield base
+  ctx.lineTo(carX0 + w * 0.76, carTop + h * 0.12); // long hood
+  ctx.lineTo(carX1, carTop + h * 0.16);            // nose
+  ctx.lineTo(carX1, carBase);
   ctx.closePath(); ctx.fill();
-  // Cabin glass with a sky streak.
-  ctx.fillStyle = '#160a33';
+  // Beltline highlight streak along the body.
+  ctx.strokeStyle = 'rgba(255,233,168,0.85)'; ctx.lineWidth = Math.max(1.5, h * 0.012);
   ctx.beginPath();
-  ctx.moveTo(x + w * 0.4, y + h * 0.62); ctx.lineTo(x + w * 0.58, y + h * 0.6);
-  ctx.lineTo(x + w * 0.68, y + h * 0.66); ctx.lineTo(x + w * 0.42, y + h * 0.67);
+  ctx.moveTo(carX0 + w * 0.03, carTop + h * 0.19);
+  ctx.lineTo(carX0 + w * 0.78, carTop + h * 0.19);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = Math.max(1, h * 0.006);
+  ctx.beginPath();
+  ctx.moveTo(carX0 + w * 0.3, carTop + h * 0.1);
+  ctx.lineTo(carX0 + w * 0.55, carTop + h * 0.07);
+  ctx.stroke();
+  // Panel lines: door cut, hood line, side skirt.
+  ctx.strokeStyle = 'rgba(22,10,51,0.55)'; ctx.lineWidth = Math.max(1.5, w * 0.004);
+  ctx.beginPath(); ctx.moveTo(carX0 + w * 0.42, carTop + h * 0.1);
+  ctx.lineTo(carX0 + w * 0.4, carBase - h * 0.02); ctx.stroke(); // door rear cut
+  ctx.beginPath(); ctx.moveTo(carX0 + w * 0.58, carTop + h * 0.1);
+  ctx.lineTo(carX0 + w * 0.6, carBase - h * 0.02); ctx.stroke(); // door front cut
+  ctx.beginPath(); ctx.moveTo(carX0 + w * 0.62, carTop + h * 0.1);
+  ctx.lineTo(carX0 + w * 0.76, carTop + h * 0.13); ctx.stroke(); // hood line
+  ctx.strokeStyle = 'rgba(22,10,51,0.7)'; ctx.lineWidth = Math.max(2, h * 0.014);
+  ctx.beginPath(); ctx.moveTo(carX0 + w * 0.06, carBase - h * 0.015);
+  ctx.lineTo(carX1 - w * 0.04, carBase - h * 0.015); ctx.stroke(); // side skirt
+  // Cabin glass: sunset-reflective — orange-pink sky mirrored in the
+  // glass, dark at the base, so the cabin reads as 3D, not a flat cut.
+  const glass = ctx.createLinearGradient(0, carTop, 0, carTop + h * 0.1);
+  glass.addColorStop(0, '#ffb347');
+  glass.addColorStop(0.45, '#ff5db1');
+  glass.addColorStop(1, '#160a33');
+  ctx.fillStyle = glass;
+  ctx.beginPath();
+  ctx.moveTo(carX0 + w * 0.3, carTop + h * 0.06);
+  ctx.lineTo(carX0 + w * 0.5, carTop + h * 0.035);
+  ctx.lineTo(carX0 + w * 0.6, carTop + h * 0.09);
+  ctx.lineTo(carX0 + w * 0.32, carTop + h * 0.1);
   ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(255,215,106,0.85)';
-  ctx.fillRect(x + w * 0.47, y + h * 0.615, w * 0.05, h * 0.012);
-  // Spoiler + headlight + grille.
+  // Bright roof edge: a hard sunlit line along the roofline + hood.
+  ctx.strokeStyle = 'rgba(255,240,180,0.9)'; ctx.lineWidth = Math.max(1.5, h * 0.01);
+  ctx.beginPath();
+  ctx.moveTo(carX0 + w * 0.28, carTop + h * 0.06);
+  ctx.lineTo(carX0 + w * 0.5, carTop + h * 0.03);
+  ctx.lineTo(carX0 + w * 0.62, carTop + h * 0.09);
+  ctx.lineTo(carX0 + w * 0.76, carTop + h * 0.12);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,215,106,0.9)';
+  ctx.fillRect(carX0 + w * 0.36, carTop + h * 0.05, w * 0.06, h * 0.012);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillRect(carX0 + w * 0.46, carTop + h * 0.065, w * 0.03, h * 0.008);
+  // Side mirror + door handle + air intake.
+  ctx.fillStyle = '#8f0f3d';
+  ctx.fillRect(carX0 + w * 0.6, carTop + h * 0.09, w * 0.025, h * 0.02);
+  ctx.fillStyle = 'rgba(255,233,168,0.8)';
+  ctx.fillRect(carX0 + w * 0.46, carTop + h * 0.16, w * 0.05, h * 0.012);
   ctx.fillStyle = '#160a33';
-  ctx.fillRect(x + w * 0.13, y + h * 0.63, w * 0.1, h * 0.025);
+  ctx.fillRect(carX0 + w * 0.62, carTop + h * 0.2, w * 0.05, h * 0.03);
+  // Rear spoiler + glowing taillight strip + twin exhausts.
+  ctx.fillStyle = '#160a33';
+  ctx.fillRect(carX0, carTop + h * 0.1, w * 0.09, h * 0.02);
+  ctx.fillRect(carX0 + w * 0.01, carTop + h * 0.12, w * 0.015, h * 0.04);
+  ctx.save();
+  ctx.shadowColor = '#ff2e4d'; ctx.shadowBlur = w * 0.02;
+  ctx.fillStyle = '#ff5d7a';
+  ctx.fillRect(carX0 + w * 0.005, carTop + h * 0.17, w * 0.06, h * 0.018);
+  ctx.restore();
+  ctx.fillStyle = '#0d0524';
+  ctx.beginPath(); ctx.arc(carX0 + w * 0.05, carBase - h * 0.012, h * 0.012, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(carX0 + w * 0.085, carBase - h * 0.012, h * 0.012, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,215,106,0.7)';
+  ctx.beginPath(); ctx.arc(carX0 + w * 0.05, carBase - h * 0.012, h * 0.005, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(carX0 + w * 0.085, carBase - h * 0.012, h * 0.005, 0, Math.PI * 2); ctx.fill();
+  // Front: glowing headlight, grille slit, splitter, fog light.
+  ctx.save();
+  ctx.shadowColor = '#fff3c4'; ctx.shadowBlur = w * 0.025;
   ctx.fillStyle = '#fff3c4';
-  ctx.beginPath(); ctx.ellipse(x + w * 0.85, y + h * 0.72, w * 0.02, h * 0.02, 0, 0, Math.PI * 2); ctx.fill();
-  // Wheels with gold rims and spokes.
+  ctx.beginPath(); ctx.ellipse(carX1 - w * 0.02, carTop + h * 0.19, w * 0.022, h * 0.02, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#160a33';
+  ctx.fillRect(carX1 - w * 0.035, carTop + h * 0.24, w * 0.035, h * 0.014);
+  ctx.fillRect(carX1 - w * 0.01, carBase - h * 0.03, w * 0.01, h * 0.012);
+  ctx.fillStyle = 'rgba(255,240,180,0.9)';
+  ctx.beginPath(); ctx.arc(carX1 - w * 0.06, carTop + h * 0.26, h * 0.008, 0, Math.PI * 2); ctx.fill();
+  // Wheels: tyre, silver brake disc, gold 5-spoke rim, hub, tread ticks.
   const wheel = (wx) => {
+    const wy = carBase - h * 0.01, wr = h * 0.1;
     ctx.fillStyle = '#0d0524';
-    ctx.beginPath(); ctx.arc(wx, y + h * 0.82, h * 0.085, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffd76a';
-    ctx.beginPath(); ctx.arc(wx, y + h * 0.82, h * 0.045, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#0d0524'; ctx.lineWidth = Math.max(1.5, w * 0.006);
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      ctx.beginPath(); ctx.moveTo(wx, y + h * 0.82);
-      ctx.lineTo(wx + Math.cos(a) * h * 0.045, y + h * 0.82 + Math.sin(a) * h * 0.045); ctx.stroke();
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = Math.max(1, w * 0.003);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(wx + Math.cos(a) * wr * 0.92, wy + Math.sin(a) * wr * 0.92);
+      ctx.lineTo(wx + Math.cos(a) * wr, wy + Math.sin(a) * wr);
+      ctx.stroke();
     }
+    ctx.fillStyle = '#c9c9d6';
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.68, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffd76a';
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.58, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#0d0524'; ctx.lineWidth = Math.max(2, w * 0.008);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      ctx.beginPath(); ctx.moveTo(wx, wy);
+      ctx.lineTo(wx + Math.cos(a) * wr * 0.58, wy + Math.sin(a) * wr * 0.58); ctx.stroke();
+    }
+    ctx.fillStyle = '#0d0524';
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffd76a';
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.09, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = Math.max(1.5, w * 0.004);
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.92, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
   };
-  wheel(x + w * 0.3); wheel(x + w * 0.72);
+  wheel(carX0 + w * 0.2); wheel(carX0 + w * 0.66);
 }
 
 function drawNeonStreet(ctx, x, y, w, h, grade) {
-  // Night street: violet sky, moon, lit towers, neon signs, wet road with
-  // smeared colour reflections.
+  // Night street, v3 — BRIGHT: violet sky full of stars, moon in a clear
+  // patch of sky (never behind a tower), three towers with dense lit
+  // windows, glowing WORD signs only (OPEN / HOTEL / VICE / BAR — no
+  // digits, nothing that reads as a "0"), street lamps with pools of
+  // light, a wet road crowded with smeared reflections, pedestrians and
+  // a parked car with glowing taillights. No empty dark field anywhere.
   const sky = ctx.createLinearGradient(x, y, x, y + h * 0.7);
-  sky.addColorStop(0, '#12082b'); sky.addColorStop(0.6, '#3d1a6e'); sky.addColorStop(1, '#7b1fa2');
+  sky.addColorStop(0, '#1a0b45'); sky.addColorStop(0.6, '#4a1a7e'); sky.addColorStop(1, '#8b2bb5');
   ctx.fillStyle = sky; ctx.fillRect(x, y, w, h * 0.7);
+  // Stars across the whole sky.
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  for (let i = 0; i < 26; i++) {
+    const sx = x + ((i * 61) % 100) / 100 * w;
+    const sy = y + ((i * 37) % 55) / 100 * h;
+    const sr = Math.max(1, w * (0.0015 + ((i * 7) % 3) * 0.001));
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+  }
+  // Moon in the clear gap between the left and middle towers.
+  const mx = x + w * 0.5, my = y + h * 0.1, mr = Math.min(w, h) * 0.085;
+  const mglow = ctx.createRadialGradient(mx, my, mr * 0.4, mx, my, mr * 2.6);
+  mglow.addColorStop(0, 'rgba(255,233,168,0.55)'); mglow.addColorStop(1, 'rgba(255,233,168,0)');
+  ctx.fillStyle = mglow; ctx.fillRect(x, y, w, h * 0.4);
   ctx.fillStyle = '#ffe9a8';
-  ctx.beginPath(); ctx.arc(x + w * 0.8, y + h * 0.14, Math.min(w, h) * 0.09, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,233,168,0.25)';
-  ctx.beginPath(); ctx.arc(x + w * 0.8, y + h * 0.14, Math.min(w, h) * 0.14, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(210,180,120,0.5)';
+  ctx.beginPath(); ctx.arc(mx - mr * 0.3, my - mr * 0.2, mr * 0.16, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(mx + mr * 0.35, my + mr * 0.3, mr * 0.11, 0, Math.PI * 2); ctx.fill();
   const g = GRADES[grade];
   // Building silhouettes with lit windows kept INSIDE each building.
   const buildings = [
@@ -445,50 +622,140 @@ function drawNeonStreet(ctx, x, y, w, h, grade) {
   ];
   ctx.fillStyle = g.deep;
   for (const b of buildings) ctx.fillRect(x + w * b.bx, y + h * b.by, w * b.bw, h * b.bh);
+  // Rooftop antennas with red beacons.
+  ctx.strokeStyle = g.deep; ctx.lineWidth = Math.max(2, w * 0.006);
+  for (const [ax, ay] of [[0.15, 0.3], [0.84, 0.22]]) {
+    ctx.beginPath(); ctx.moveTo(x + w * ax, y + h * ay); ctx.lineTo(x + w * ax, y + h * (ay - 0.08)); ctx.stroke();
+  }
+  ctx.save();
+  ctx.shadowColor = '#ff2e4d'; ctx.shadowBlur = w * 0.015;
+  ctx.fillStyle = '#ff5d7a';
+  ctx.beginPath(); ctx.arc(x + w * 0.15, y + h * 0.21, Math.max(2, w * 0.007), 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w * 0.84, y + h * 0.13, Math.max(2, w * 0.007), 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // Dense lit windows — more of them, brighter, three colours.
   const winColors = ['#ffd76a', '#22d3ee', '#ff2e88'];
   for (let bi = 0; bi < buildings.length; bi++) {
     const b = buildings[bi];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 16; i++) {
       const wx = x + w * (b.bx + 0.03 + ((i * 37) % 70) / 100 * (b.bw - 0.06));
       const wy = y + h * (b.by + 0.04 + ((i * 53) % 70) / 100 * (b.bh - 0.08));
       ctx.fillStyle = winColors[(bi + i) % 3];
-      ctx.globalAlpha = 0.55 + ((i * 7) % 40) / 100;
-      ctx.fillRect(wx, wy, Math.max(2, w * 0.014), Math.max(2, w * 0.014));
+      ctx.globalAlpha = 0.65 + ((i * 7) % 35) / 100;
+      ctx.fillRect(wx, wy, Math.max(2, w * 0.016), Math.max(2, w * 0.016));
     }
   }
   ctx.globalAlpha = 1;
-  // Neon signs: glowing OPEN sign (pink) and a cyan bar sign.
+  // Neon edge strip on the right tower.
   ctx.save();
-  ctx.shadowColor = '#ff2e88'; ctx.shadowBlur = w * 0.03;
+  ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = w * 0.02;
+  ctx.fillStyle = '#22d3ee';
+  ctx.fillRect(x + w * 0.68, y + h * 0.24, w * 0.012, h * 0.46);
+  ctx.restore();
+  // Neon signs — WORDS only, glowing hard so every letter reads.
+  // Pink OPEN box sign, left tower.
+  ctx.save();
+  ctx.shadowColor = '#ff2e88'; ctx.shadowBlur = w * 0.035;
   ctx.strokeStyle = '#ff5db1'; ctx.lineWidth = Math.max(2, w * 0.008);
-  ctx.strokeRect(x + w * 0.06, y + h * 0.36, w * 0.2, h * 0.1);
+  ctx.strokeRect(x + w * 0.05, y + h * 0.36, w * 0.22, h * 0.1);
+  ctx.strokeStyle = '#ffd7ef'; ctx.lineWidth = Math.max(1, w * 0.003);
+  ctx.strokeRect(x + w * 0.06, y + h * 0.37, w * 0.2, h * 0.08);
   ctx.fillStyle = '#ffd7ef';
-  ctx.font = `${Math.max(12, h * 0.055)}px "Bebas Neue", sans-serif`;
+  ctx.font = `${Math.max(12, h * 0.06)}px "Bebas Neue", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('OPEN', x + w * 0.16, y + h * 0.41);
   ctx.restore();
+  // Magenta VICE sign across the middle tower.
+  ctx.save();
+  ctx.shadowColor = '#ff2e88'; ctx.shadowBlur = w * 0.03;
+  ctx.fillStyle = '#ff5db1';
+  ctx.font = `${Math.max(12, h * 0.055)}px "Bebas Neue", sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('V I C E', x + w * 0.5, y + h * 0.47);
+  ctx.restore();
+  // Cyan vertical HOTEL sign on the right tower, letters stacked.
   ctx.save();
   ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = w * 0.03;
-  ctx.fillStyle = '#22d3ee';
-  ctx.fillRect(x + w * 0.72, y + h * 0.3, w * 0.05, h * 0.22);
-  ctx.fillStyle = '#0d0524';
-  ctx.fillRect(x + w * 0.735, y + h * 0.33, w * 0.02, h * 0.16);
+  ctx.fillStyle = '#a5f3fc';
+  ctx.font = `${Math.max(11, h * 0.05)}px "Bebas Neue", sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const hotel = ['H', 'O', 'T', 'E', 'L'];
+  hotel.forEach((ch, i) => ctx.fillText(ch, x + w * 0.745, y + h * (0.32 + i * 0.055)));
   ctx.restore();
-  // Wet road + smeared reflections.
+  // Small gold BAR sign, low on the left tower.
+  ctx.save();
+  ctx.shadowColor = '#ffd76a'; ctx.shadowBlur = w * 0.025;
+  ctx.fillStyle = '#ffd76a';
+  ctx.font = `${Math.max(11, h * 0.045)}px "Bebas Neue", sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('BAR', x + w * 0.16, y + h * 0.56);
+  ctx.restore();
+  // Street lamps: posts + glowing heads + pools of light on the road.
+  const lamp = (lx) => {
+    ctx.strokeStyle = '#0d0524'; ctx.lineWidth = Math.max(2, w * 0.008);
+    ctx.beginPath(); ctx.moveTo(x + w * lx, y + h * 0.98); ctx.lineTo(x + w * lx, y + h * 0.66); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + w * lx, y + h * 0.66); ctx.lineTo(x + w * (lx + 0.05), y + h * 0.66); ctx.stroke();
+    ctx.save();
+    ctx.shadowColor = '#ffd76a'; ctx.shadowBlur = w * 0.03;
+    ctx.fillStyle = '#fff3c4';
+    ctx.beginPath(); ctx.arc(x + w * (lx + 0.05), y + h * 0.67, Math.max(3, w * 0.012), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    const pool = ctx.createRadialGradient(x + w * (lx + 0.05), y + h * 0.98, 2, x + w * (lx + 0.05), y + h * 0.98, w * 0.12);
+    pool.addColorStop(0, 'rgba(255,215,106,0.35)'); pool.addColorStop(1, 'rgba(255,215,106,0)');
+    ctx.fillStyle = pool;
+    ctx.beginPath(); ctx.ellipse(x + w * (lx + 0.05), y + h * 0.97, w * 0.12, h * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+  };
+  // Wet road + smeared reflections (drawn first so lamps/figures sit on it).
   const road = ctx.createLinearGradient(0, y + h * 0.7, 0, y + h);
-  road.addColorStop(0, '#241640'); road.addColorStop(1, '#0d0524');
+  road.addColorStop(0, '#2c1a55'); road.addColorStop(1, '#0d0524');
   ctx.fillStyle = road; ctx.fillRect(x, y + h * 0.7, w, h * 0.3);
-  for (const [rx, col, rw] of [[0.16, '#ff2e88', 0.05], [0.74, '#22d3ee', 0.04], [0.5, '#ffd76a', 0.03]]) {
+  for (const [rx, col, rw, a] of [
+    [0.16, '#ff2e88', 0.07, 0.85], [0.5, '#ff5db1', 0.05, 0.7], [0.745, '#22d3ee', 0.05, 0.85],
+    [0.3, '#ffd76a', 0.04, 0.6], [0.88, '#ff7a3d', 0.04, 0.55], [0.62, '#ff2e88', 0.03, 0.5],
+  ]) {
     const refl = ctx.createLinearGradient(0, y + h * 0.72, 0, y + h);
     refl.addColorStop(0, col); refl.addColorStop(1, 'rgba(13,5,36,0)');
-    ctx.globalAlpha = 0.7; ctx.fillStyle = refl;
+    ctx.globalAlpha = a; ctx.fillStyle = refl;
     ctx.fillRect(x + w * (rx - rw / 2), y + h * 0.72, w * rw, h * 0.26);
   }
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = 'rgba(255,215,106,0.8)'; ctx.lineWidth = Math.max(1.5, w * 0.005);
+  // Puddle highlights.
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  for (const [px, py, pw] of [[0.28, 0.84, 0.12], [0.68, 0.9, 0.1], [0.45, 0.78, 0.08]]) {
+    ctx.beginPath(); ctx.ellipse(x + w * px, y + h * py, w * pw, h * 0.012, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(255,215,106,0.85)'; ctx.lineWidth = Math.max(1.5, w * 0.005);
   ctx.setLineDash([w * 0.06, w * 0.05]);
   ctx.beginPath(); ctx.moveTo(x + w * 0.5, y + h * 0.86); ctx.lineTo(x + w * 0.5, y + h); ctx.stroke();
   ctx.setLineDash([]);
+  lamp(0.08); lamp(0.88);
+  // Parked car silhouette with glowing taillights, right side.
+  ctx.fillStyle = '#160a33';
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.82, y + h * 0.86); ctx.lineTo(x + w * 0.84, y + h * 0.79);
+  ctx.lineTo(x + w * 0.92, y + h * 0.78); ctx.lineTo(x + w * 0.97, y + h * 0.82);
+  ctx.lineTo(x + w * 0.97, y + h * 0.86);
+  ctx.closePath(); ctx.fill();
+  ctx.save();
+  ctx.shadowColor = '#ff2e4d'; ctx.shadowBlur = w * 0.015;
+  ctx.fillStyle = '#ff5d7a';
+  ctx.fillRect(x + w * 0.825, y + h * 0.82, w * 0.02, h * 0.014);
+  ctx.restore();
+  // Pedestrian silhouettes with a pink rim light, walking the sidewalk.
+  const walker = (wx, s, flip) => {
+    ctx.save();
+    ctx.translate(x + w * wx, y + h * 0.98);
+    ctx.scale(flip * s, s);
+    ctx.fillStyle = '#0d0524';
+    ctx.beginPath(); ctx.arc(0, -h * 0.14, h * 0.018, 0, Math.PI * 2); ctx.fill(); // head
+    ctx.fillRect(-w * 0.008, -h * 0.125, w * 0.016, h * 0.06); // torso
+    ctx.fillRect(-w * 0.014, -h * 0.068, w * 0.006, h * 0.066); // leg back
+    ctx.fillRect(w * 0.006, -h * 0.068, w * 0.006, h * 0.066); // leg front
+    ctx.strokeStyle = 'rgba(255,93,177,0.8)'; ctx.lineWidth = Math.max(1, w * 0.003);
+    ctx.beginPath(); ctx.arc(w * 0.004, -h * 0.14, h * 0.018, -Math.PI * 0.4, Math.PI * 0.3); ctx.stroke();
+    ctx.restore();
+  };
+  walker(0.38, 1, 1); walker(0.44, 0.85, -1); walker(0.6, 0.9, 1);
 }
 
 function drawLifeguard(ctx, x, y, w, h, grade) {
@@ -571,13 +838,14 @@ export function applyGradeWash(ctx, x, y, w, h, grade) {
 }
 
 /** Halftone print dots over a rect — the "Poster Ink" texture that makes
- *  photos and procedural art read as one printed poster. */
+ *  photos and procedural art read as one printed poster. v3: finer grain
+ *  (smaller step, smaller dots) so the print reads sharp at 1920x1080. */
 export function applyPosterInk(ctx, x, y, w, h) {
-  const step = Math.max(7, Math.min(12, w * 0.014));
-  ctx.fillStyle = 'rgba(18,8,43,0.07)';
+  const step = Math.max(5, Math.min(8, w * 0.008));
+  ctx.fillStyle = 'rgba(18,8,43,0.08)';
   for (let py = y + step / 2; py < y + h; py += step) {
     for (let px = x + step / 2; px < x + w; px += step) {
-      ctx.beginPath(); ctx.arc(px, py, step * 0.16, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, step * 0.18, 0, Math.PI * 2); ctx.fill();
     }
   }
 }
@@ -681,6 +949,27 @@ export function drawTitleBand(ctx, state, W, H) {
   ctx.fillRect(0, by, W, bandH);
   ctx.fillStyle = '#ff2e88';
   ctx.fillRect(0, by, W, Math.max(4, bandH * 0.025));
+  // v3: faint gold dot texture across the band so the navy never reads
+  // as a flat empty field.
+  ctx.fillStyle = 'rgba(255,215,106,0.07)';
+  const dotStep = Math.max(14, W * 0.012);
+  for (let py = by + dotStep; py < by + bandH; py += dotStep) {
+    for (let px = dotStep / 2; px < W; px += dotStep) {
+      ctx.beginPath(); ctx.arc(px, py, Math.max(1, dotStep * 0.06), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  // Thin gold hairline under the pink rule + tiny stars in the corners.
+  ctx.fillStyle = 'rgba(255,215,106,0.5)';
+  ctx.fillRect(0, by + Math.max(4, bandH * 0.025) + 3, W, 1);
+  const star = (sx, sy, r) => {
+    ctx.fillStyle = 'rgba(255,215,106,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - r); ctx.quadraticCurveTo(sx, sy, sx + r, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy + r); ctx.quadraticCurveTo(sx, sy, sx - r, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy - r); ctx.fill();
+  };
+  star(W * 0.02, by + bandH * 0.14, Math.max(4, bandH * 0.03));
+  star(W * 0.98, by + bandH * 0.14, Math.max(4, bandH * 0.03));
   const cx = W / 2;
   // Measure the badges FIRST: the title only gets the width that is left
   // between them, so a long title can never run under a badge.
@@ -716,7 +1005,29 @@ export function drawTitleBand(ctx, state, W, H) {
     ctx.textAlign = 'center'; ctx.fillStyle = '#ffd76a';
     ctx.fillText(sub, cx, by + bandH * 0.88);
     try { ctx.letterSpacing = '0px'; } catch { /* ignore */ }
+    // v3: ornament rules with a diamond, flanking the subtitle so the
+    // band's lower corners feel finished instead of empty.
+    const subW = ctx.measureText(sub).width;
+    const oy = by + bandH * 0.86;
+    ctx.strokeStyle = 'rgba(255,215,106,0.65)'; ctx.lineWidth = Math.max(1, bandH * 0.008);
+    for (const dir of [-1, 1]) {
+      const x0 = cx + dir * (subW / 2 + 24);
+      const x1 = cx + dir * (subW / 2 + Math.min(W * 0.12, 190));
+      ctx.beginPath(); ctx.moveTo(x0, oy); ctx.lineTo(x1, oy); ctx.stroke();
+      const dx = x1 + dir * 10;
+      ctx.fillStyle = '#ffd76a';
+      ctx.save(); ctx.translate(dx, oy); ctx.rotate(Math.PI / 4);
+      const dr = Math.max(3, bandH * 0.02);
+      ctx.fillRect(-dr / 2, -dr / 2, dr, dr); ctx.restore();
+    }
   }
+  // v3: micro-credits tucked under the badges — the band's outer thirds
+  // now carry type instead of bare navy.
+  ctx.fillStyle = 'rgba(255,215,106,0.85)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `${Math.max(10, bandH * 0.075)}px "Bebas Neue", sans-serif`;
+  ctx.fillText('VICE COVER STUDIO', pillW / 2 + 14, by + bandH * 0.94);
+  ctx.fillText('ORIGINAL ARTWORK', W - stampR - 14, by + bandH * 0.94);
   // Sticker badges: a tilted "NEW · SUMMER 2026" pill (left) and a round
   // "EST. 2026" stamp (right). They sit in the band's empty corners, clear
   // of the centred title and never clipped by the canvas edge.
