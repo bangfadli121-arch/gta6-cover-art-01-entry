@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vice Cover Studio — GTA-style cover art maker</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">VC</span><span class="brand-name">VICE COVER STUDIO</span></div>
+    <p class="brand-sub">Turn your photo into a Vice City sunset poster — 3 steps, no upload.</p>
+  </header>
+  <main class="layout">
+    <section class="panel editor" aria-label="Editor">
+      <h2>1 · Your photos</h2>
+      <div class="photo-slots">
+        <label class="slot" id="slot0">Photo A <span class="slot-state">empty</span><input id="file0" type="file" accept="image/*"></label>
+        <label class="slot" id="slot1">Photo B <span class="slot-state">empty</span><input id="file1" type="file" accept="image/*"></label>
+        <label class="slot" id="slot2">Photo C <span class="slot-state">empty</span><input id="file2" type="file" accept="image/*"></label>
+      </div>
+      <div class="samples">
+        <span>Or try a sample:</span>
+        <button id="samplePier" type="button">Pier sunset</button>
+        <button id="sampleBoulevard" type="button">Boulevard</button>
+        <button id="sampleBoth" type="button">Load both</button>
+      </div>
+
+      <h2>2 · Layout &amp; grade</h2>
+      <div class="row">
+        <label>Layout
+          <select id="layout">
+            <option value="classic">Classic 3 × 3 grid</option>
+            <option value="wide">Hero wide + strip</option>
+            <option value="solo">Solo poster</option>
+          </select>
+        </label>
+        <label>Grade
+          <select id="grade">
+            <option value="sunset">Sunset pink</option>
+            <option value="golden">Golden hour</option>
+            <option value="neon">Neon night</option>
+            <option value="teal">Teal Vice</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Size
+          <select id="size">
+            <option value="1080x1080">1080 × 1080 · square</option>
+            <option value="1080x1350">1080 × 1350 · portrait</option>
+            <option value="1920x1080">1920 × 1080 · wide</option>
+          </select>
+        </label>
+        <label class="check"><input id="fillArt" type="checkbox" checked> Fill empty panels with Vice art</label>
+      </div>
+
+      <h2>3 · Panels <span class="hint">— click a panel in the preview to select it</span></h2>
+      <div class="panel-grid" id="panelGrid" role="group" aria-label="Panels"></div>
+      <div class="row sliders">
+        <label>Photo in panel
+          <select id="panelSource"></select>
+        </label>
+      </div>
+      <div class="row sliders">
+        <label>Zoom <input id="zoom" type="range" min="100" max="260" value="110"><output id="zoomOut">110%</output></label>
+        <label>Move X <input id="offX" type="range" min="-50" max="50" value="0"><output id="offXOut">0</output></label>
+        <label>Move Y <input id="offY" type="range" min="-50" max="50" value="0"><output id="offYOut">0</output></label>
+      </div>
+      <div class="row">
+        <button id="shuffle" type="button" class="ghost">Shuffle panels</button>
+        <button id="fillPhotos" type="button" class="ghost">Spread my photos</button>
+      </div>
+
+      <h2>4 · Caption</h2>
+      <label>Title <input id="title" type="text" maxlength="24" value="SUNSET HEIST"></label>
+      <label>Subtitle <input id="subtitle" type="text" maxlength="40" value="VICE CITY · 2026"></label>
+      <label>Neon tagline <input id="tagline" type="text" maxlength="30" value="one last ride"></label>
+      <div class="row">
+        <label>Title colour
+          <select id="titleColor">
+            <option value="white">White + magenta offset</option>
+            <option value="yellow">Yellow + navy offset</option>
+            <option value="pink">Hot pink + white offset</option>
+            <option value="cyan">Cyan + magenta offset</option>
+          </select>
+        </label>
+        <label>Title size <input id="titleScale" type="range" min="70" max="130" value="100"><output id="titleScaleOut">100%</output></label>
+      </div>
+      <div class="actions">
+        <button id="export" type="button" class="primary">Export PNG</button>
+        <button id="exportAll" type="button" class="ghost">Export all 3 sizes</button>
+      </div>
+      <p id="status" role="status">Load a photo — or use a sample — then export.</p>
+      <p class="fine">Photos never leave your machine. Fonts: Anton, Bebas Neue, Archivo Black, Pacifico (SIL OFL). No game artwork or logos.</p>
+    </section>
+
+    <section class="panel preview" aria-label="Live preview">
+      <div class="preview-head"><span>Live preview</span><span id="sizeLabel">1080 × 1080</span></div>
+      <div class="canvas-wrap"><canvas id="cover" width="1080" height="1080" aria-label="Cover preview"></canvas></div>
+      <p class="steps"><b>3 steps:</b> ① photo ② panels + caption ③ Export PNG</p>
+    </section>
+  </main>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
